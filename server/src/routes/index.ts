@@ -3,7 +3,6 @@ import { Router } from "express";
 import authRoutes from "./auth.route";
 import userRoutes from "./user.route";
 import mediaRoutes from "./media.route";
-import { searchMediaHandler } from "../controllers/media.controller";
 
 const router = Router();
 
