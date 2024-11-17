@@ -3,7 +3,9 @@ import { Router } from "express";
 import {
   getMediaListHandler,
   getMediaHandler,
-  searchMediaHandler,  
+  searchMediaHandler,
+  favoriteMediaHandler,
+  unFavoriteMediaHandler,  
 } from "../controllers/media.controller";
 import authenticate from "../middlewares/authenticate";
 import restrictTo from "../middlewares/restrict";
@@ -19,10 +21,11 @@ router.get("/:category", getMediaListHandler);
 router.get("/detail/:mediaId", getMediaHandler); 
 
 router.use(authenticate); 
-router.post('/:id/favorite', ); 
-router.delete('/:id/favorite', ); 
-router.post('/:id/review', ); 
-router.delete('/:id/review', ); 
+router.post('/:mediaId/favorite', favoriteMediaHandler); 
+router.delete('/:mediaId/favorite', unFavoriteMediaHandler); 
+router.post('/:mediaId/review', ); 
+router.put('/:mediaId/review', );
+router.delete('/:mediaId/review', ); 
 
 router.use(restrictTo('admin')); 
 router.post('/blacklist', ); 

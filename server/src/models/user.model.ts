@@ -8,8 +8,6 @@ export interface UserDocument extends mongoose.Document {
   password: string;
   name: string;
   role: string;
-  favorites?: mongoose.Types.ObjectId[];
-  reviews?: mongoose.Types.ObjectId[];
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<boolean>;
@@ -39,18 +37,6 @@ const userSchema = new mongoose.Schema<UserDocument>(
       enum: ["user", "admin"],
       default: "user",
     },
-    favorites: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Media",
-      },
-    ],
-    reviews: [
-      {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Review",
-      },
-    ],
   },
   { timestamps: true }
 );
@@ -74,4 +60,4 @@ userSchema.methods.omitSensitive = function () {
   return user;
 };
 
-export default  mongoose.model<UserDocument>("User", userSchema);
+export const User = mongoose.model<UserDocument>("User", userSchema);

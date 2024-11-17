@@ -1,5 +1,5 @@
 import { Request, Response, NextFunction } from "express";
-import User from "../models/user.model";
+import {User} from "../models/user.model";
 import appAssert from "../utils/appAssert";
 import { UNAUTHORIZED } from "../constants/http";
 

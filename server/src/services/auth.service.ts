@@ -1,5 +1,5 @@
 import { CONFLICT, UNAUTHORIZED } from "../constants/http";
-import User from "../models/user.model";
+import { User } from "../models/user.model";
 import appAssert from "../utils/appAssert";
 import AppError from "../utils/AppError";
 import { signToken } from "../utils/jwt";
