@@ -1,9 +1,8 @@
-import { CONFLICT } from "../constants/http";
+import { CONFLICT, NOT_FOUND } from "../constants/http";
 import { Genre } from "../models/genre.model";
 import { Media, MediaDocument } from "../models/media.model";
 import { tmdbApi } from "../tmdb/tmdb.api";
 import appAssert from "../utils/appAssert";
-import catchError from "../utils/catchError";
 
 export const saveMediaToMongo = async ({
   mediaId,
@@ -23,13 +22,18 @@ export const saveMediaToMongo = async ({
     mediaType,
     mediaId,
   });
-  await saveGenresToMongo(response.genres);
 
+  appAssert(response, NOT_FOUND, "Media not found");
+
+  if (response.genres && response.genres.length > 0) {
+    await saveGenresToMongo(response.genres);
+  }
+  
   const media = new Media({
     _id: `${mediaType}-${mediaId}`,
     tmdbId: mediaId,
     mediaType,
-    title: response.title || response.name,
+    title: response.title || response.name || response.original_name || response.original_title,
     overview: response.overview,
     posterPath: response.poster_path,
     backdropPath: response.backdrop_path,
@@ -39,16 +43,25 @@ export const saveMediaToMongo = async ({
   });
 
   await media.save();
+
+  return media;
 };
 
 export const saveGenresToMongo = async (
-  genres: [{ id: string; name: string }]
+  genres: { id: string; name: string }[]
 ) => {
-  for (const genre of genres) {
-    await Genre.updateOne(
-      { _id: genre.id },
-      { name: genre.name },
-      { upsert: true }
-    );
+
+  if (genres.length === 0 || !genres) {
+    return;
   }
+
+  const bulkOps = genres.map((genre) => ({
+    updateOne: {
+      filter: { _id: genre.id },
+      update: { name: genre.name },
+      upsert: true,
+    },
+  }))
+
+  return Genre.bulkWrite(bulkOps);
 };

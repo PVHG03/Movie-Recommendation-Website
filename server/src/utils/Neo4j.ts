@@ -57,6 +57,58 @@ class Neo4jClient {
     });
   }
 
+  async deleteNode({ label, properties = {} }: Node) {
+    return this.transaction(async (tx: Transaction) => {
+      const query = `MATCH (n:${label}) WHERE n=$properties DETACH DELETE n`;
+      await tx.run(query, { properties });
+    });
+  }
+
+  async deleteRelationship({
+    startLabel,
+    startId,
+    endLabel,
+    endId,
+    relationship,
+  }: Relationship) {
+    return this.transaction(async (tx: Transaction) => {
+      const query = `
+        MATCH (a:${startLabel})-[r:${relationship}]->(b:${endLabel})
+        WHERE a.id = $startId AND b.id = $endId
+        DELETE r
+      `;
+      await tx.run(query, { startId, endId });
+    });
+  }
+
+  async updateNode({ label, properties = {} }: Node) {
+    return this.transaction(async (tx: Transaction) => {
+      const query = `MATCH (n:${label}) SET n+=$properties RETURN n`;
+      const result = await tx.run(query, { properties });
+      return result.records[0].get(0);
+    });
+  }
+
+  async updateRelationship({
+    startLabel,
+    startId,
+    endLabel,
+    endId,
+    relationship,
+    properties = {},
+  }: Relationship) {
+    return this.transaction(async (tx: Transaction) => {
+      const query = `
+        MATCH (a:${startLabel})-[r:${relationship}]->(b:${endLabel})
+        WHERE a.id = $startId AND b.id = $endId
+        SET r+=$properties
+        RETURN r
+      `;
+      const result = await tx.run(query, { startId, endId, properties });
+      return result.records[0].get(0);
+    });
+  }
+
   async transaction(callback: (tx: Transaction) => Promise<any>) {
     const session = this.driver.session({ database: "mrs" });
     const tx = session.beginTransaction();
