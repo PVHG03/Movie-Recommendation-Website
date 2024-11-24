@@ -4,10 +4,15 @@ import { Favorite } from "../models/favorite.model";
 import { Media } from "../models/media.model";
 import { Review } from "../models/review.model";
 import { User } from "../models/user.model";
-import { saveMediaToMongo } from "../services/media.service";
+import { favoriteMedia, unfavoriteMedia } from "../services/favorite.service";
+import { fetchMediaDetails, saveMediaToMongo } from "../services/media.service";
+import {
+  deleteReviewMedia,
+  editReviewMedia,
+  reviewMedia,
+} from "../services/rating.service";
 import { tmdbApi } from "../tmdb/tmdb.api";
 import appAssert from "../utils/appAssert";
-import axios from "../utils/axios";
 import catchError from "../utils/catchError";
 import neo4jClient from "../utils/Neo4j";
 
@@ -29,26 +34,7 @@ export const getMediaListHandler = catchError(async (req, res) => {
 export const getMediaHandler = catchError(async (req, res) => {
   const { mediaType, mediaId } = req.params;
 
-  console.log(`This is getMediaHandler function`);
-
-  appAssert(mediaType, BAD_REQUEST, "Media type is required");
-  appAssert(mediaId, BAD_REQUEST, "Media id is required");
-
-  let media = await Media.findById(`${mediaType}-${mediaId}`);
-  if (!media) {
-    console.log(`Media not found in database, saving to database`);
-    const response = await tmdbApi.mediaDetail({ mediaType, mediaId });
-    appAssert(response, NOT_FOUND, "Media not found");
-    media = await saveMediaToMongo({ mediaId, mediaType });
-    await neo4jClient.createNode({
-      label: mediaType === "movie" ? "Movie" : "TVShow",
-      properties: {
-        _id: media._id,
-        title: media.title,
-        mediaType: media.mediaType,
-      },
-    });
-  }
+  const media = await fetchMediaDetails({ mediaType, mediaId });
 
   return res.status(OK).json({
     status: "success",
@@ -73,41 +59,7 @@ export const favoriteMediaHandler = catchError(async (req, res) => {
   const { mediaId, mediaType } = req.params;
   const userId = req.userId;
 
-  appAssert(mediaId, BAD_REQUEST, "Media id is required");
-  appAssert(mediaType, BAD_REQUEST, "Media type is required");
-
-  let media = await Media.findById(`${mediaType}-${mediaId}`);
-  if (!media) {
-    console.log(`Media not found in database, saving to database`);
-    media = await saveMediaToMongo({ mediaId, mediaType });
-    await neo4jClient.createNode({
-      label: mediaType === "movie" ? "Movie" : "TVShow",
-      properties: {
-        _id: media._id,
-        title: media.title,
-        mediaType: media.mediaType,
-      },
-    });
-  }
-
-  const favorite = await Favorite.findOne({ userId, mediaId: media._id });
-  appAssert(!favorite, CONFLICT, "Media already favorited");
-
-  const newFavorite = new Favorite({
-    userId,
-    mediaId: media._id,
-  });
-  await neo4jClient.createRelationship({
-    startLabel: "User",
-    startId: userId.toString(),
-    endLabel: mediaType === "movie" ? "Movie" : "TVShow",
-    endId: media._id,
-    relationship: "FAVORITED",
-    properties: {
-      createdAt: new Date().toISOString(),
-    },
-  });
-  await newFavorite.save();
+  const newFavorite = await favoriteMedia({ mediaId, mediaType, userId });
 
   return res.status(OK).json({
     status: "success",
@@ -122,20 +74,7 @@ export const unfavoriteMediaHandler = catchError(async (req, res) => {
   appAssert(mediaId, BAD_REQUEST, "Media id is required");
   appAssert(mediaType, BAD_REQUEST, "Media type is required");
 
-  const media = await Media.findById(`${mediaType}-${mediaId}`);
-  appAssert(media, NOT_FOUND, "Media not found");
-
-  const favorite = await Favorite.findOne({ userId, mediaId: media._id });
-  appAssert(favorite, NOT_FOUND, "Media not favorited");
-
-  await neo4jClient.deleteRelationship({
-    startLabel: "User",
-    startId: userId.toString(),
-    endLabel: mediaType === "movie" ? "Movie" : "TVShow",
-    endId: media._id,
-    relationship: "FAVORITED",
-  });
-  await favorite.deleteOne();
+  const favorite = await unfavoriteMedia({ mediaId, mediaType, userId });
 
   return res.status(OK).json({
     status: "success",
@@ -163,47 +102,13 @@ export const reviewMediaHandler = catchError(async (req, res) => {
   appAssert(mediaId, BAD_REQUEST, "Media id is required");
   appAssert(mediaType, BAD_REQUEST, "Media type is required");
 
-  let media = await Media.findById(`${mediaType}-${mediaId}`);
-  if (!media) {
-    console.log(`Media not found in database, saving to database`);
-    media = await saveMediaToMongo({ mediaId, mediaType });
-    await neo4jClient.createNode({
-      label: mediaType === "movie" ? "Movie" : "TVShow",
-      properties: {
-        _id: media._id,
-        title: media.title,
-        mediaType: media.mediaType,
-      },
-    });
-  }
-
-  const user = await User.findById(userId);
-  appAssert(user, NOT_FOUND, "User not found");
-
-  const review = await Review.findOne({ userId, mediaId: media._id });
-  appAssert(!review, CONFLICT, "Media already reviewed");
-
-  const newReview = new Review({
+  const newReview = await reviewMedia({
+    mediaId,
+    mediaType,
     userId,
-    mediaId: media._id,
     rating,
     comment,
   });
-
-  await neo4jClient.createRelationship({
-    startLabel: "User",
-    startId: userId.toString(),
-    endLabel: mediaType === "movie" ? "Movie" : "TVShow",
-    endId: media._id,
-    relationship: "REVIEWED",
-    properties: {
-      rating,
-      comment,
-      createdAt: new Date().toISOString(),
-    },
-  });
-
-  await newReview.save();
 
   return res.status(OK).json({
     status: "success",
@@ -218,20 +123,13 @@ export const removeReviewMediaHandler = catchError(async (req, res) => {
   appAssert(mediaId, BAD_REQUEST, "Media id is required");
   appAssert(mediaType, BAD_REQUEST, "Media type is required");
 
-  const media = await Media.findById(`${mediaType}-${mediaId}`);
-  appAssert(media, NOT_FOUND, "Media not found");
-
-  const review = await Review.findOne({ userId, mediaId: media._id });
-  appAssert(review, NOT_FOUND, "Review not found");
-
-  await neo4jClient.deleteRelationship({
-    startLabel: "User",
-    startId: userId.toString(),
-    endLabel: mediaType === "movie" ? "Movie" : "TVShow",
-    endId: media._id,
-    relationship: "REVIEWED",
+  const review = await deleteReviewMedia({
+    mediaId,
+    mediaType,
+    userId,
+    rating: 0,
+    comment: "",
   });
-  await review.deleteOne();
 
   return res.status(OK).json({
     status: "success",
@@ -259,27 +157,12 @@ export const editReviewMediaHandler = catchError(async (req, res) => {
   appAssert(mediaId, BAD_REQUEST, "Media id is required");
   appAssert(mediaType, BAD_REQUEST, "Media type is required");
 
-  const media = await Media.findById(`${mediaType}-${mediaId}`);
-  appAssert(media, NOT_FOUND, "Media not found");
-
-  const review = await Review.findOne({ userId, mediaId: media._id });
-  appAssert(review, NOT_FOUND, "Review not found");
-
-  review.rating = rating;
-  review.comment = comment;
-  await review.save();
-
-  await neo4jClient.updateRelationship({
-    startLabel: "User",
-    startId: userId.toString(),
-    endLabel: mediaType === "movie" ? "Movie" : "TVShow",
-    endId: media._id,
-    relationship: "REVIEWED",
-    properties: {
-      rating,
-      comment,
-      updatedAt: new Date().toISOString(),
-    },
+  const review = await editReviewMedia({
+    mediaId,
+    mediaType,
+    userId,
+    rating,
+    comment,
   });
 
   return res.status(OK).json({

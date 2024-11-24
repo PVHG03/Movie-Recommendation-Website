@@ -24,21 +24,18 @@ export const createAccount = async (data: AccountParams) => {
   });
 
   const userId = user._id;
-  // try {
-  //   await neo4jClient.createNode({
-  //     label: "User",
-  //     properties: {
-  //       userId: userId.toString(),
-  //       name: user.name,
-  //     },
-  //   });
-  // } catch (error) {
-  //   await User.findByIdAndDelete(userId);
-  //   throw new AppError(
-  //     CONFLICT,
-  //     "Failed to create user in graph database. Rollback user creation in MongoDB"
-  //   );
-  // }
+  try {
+    await neo4jClient.Node({
+      label: "User",
+      properties: {
+        id: userId.toString(),
+        name: user.name,
+      },
+    });
+  } catch (error: any) {
+    await User.findByIdAndDelete(userId);
+    throw new AppError(500, error.message);
+  }
 
   const accessToken = signToken({
     userId,

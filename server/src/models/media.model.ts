@@ -6,12 +6,13 @@ export interface MediaDocument extends mongoose.Document {
   mediaType: string; // movie or tv
   title: string;
   overview: string;
-  posterPath: string;
-  backdropPath: string;
-  releaseDate: string;
+  posterPath?: string;
+  backdropPath?: string;
+  releaseDate?: string;
   genres: mongoose.Types.ObjectId[];
-  video?: string;
+  videos?: string[];
   createdAt: Date;
+  updatedAt: Date;
 }
 
 const mediaSchema = new mongoose.Schema<MediaDocument>(
@@ -25,7 +26,7 @@ const mediaSchema = new mongoose.Schema<MediaDocument>(
     releaseDate: { type: String, required: true },
     genres: [{ type: String, ref: "Genre" }],
     mediaType: { type: String, required: true },
-    video: { type: String },
+    videos: [{ type: String }],
   },
   { timestamps: true }
 );

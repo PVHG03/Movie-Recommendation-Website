@@ -5,7 +5,10 @@ import {
   getMediaHandler,
   searchMediaHandler,
   favoriteMediaHandler,
-  unFavoriteMediaHandler,  
+  unfavoriteMediaHandler,
+  reviewMediaHandler,
+  removeReviewMediaHandler,
+  editReviewMediaHandler,  
 } from "../controllers/media.controller";
 import authenticate from "../middlewares/authenticate";
 import restrictTo from "../middlewares/restrict";
@@ -22,10 +25,10 @@ router.get("/detail/:mediaId", getMediaHandler);
 
 router.use(authenticate); 
 router.post('/:mediaId/favorite', favoriteMediaHandler); 
-router.delete('/:mediaId/favorite', unFavoriteMediaHandler); 
-router.post('/:mediaId/review', ); 
-router.put('/:mediaId/review', );
-router.delete('/:mediaId/review', ); 
+router.delete('/:mediaId/favorite', unfavoriteMediaHandler); 
+router.post('/:mediaId/review', reviewMediaHandler); 
+router.put('/:mediaId/review', editReviewMediaHandler);
+router.delete('/:mediaId/review', removeReviewMediaHandler); 
 
 router.use(restrictTo('admin')); 
 router.post('/blacklist', ); 

@@ -1,5 +1,5 @@
 import { Route, BrowserRouter as Router, Routes } from "react-router-dom"
-import { Login } from "./pages/login"
+import { Login } from "./pages/Login"
 import { Register } from "./pages/Register"
 import { HomePage } from "./pages/Home"
 import { MediaDetailPage } from "./pages/MediaDetail"

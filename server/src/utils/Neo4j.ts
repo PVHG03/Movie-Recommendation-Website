@@ -28,15 +28,20 @@ class Neo4jClient {
     this.driver = neo4j.driver(uri, neo4j.auth.basic(username, password));
   }
 
-  async createNode({ label, properties = {} }: Node) {
+  async Node({ label, properties = {} }: Node) {
     return this.transaction(async (tx: Transaction) => {
-      const query = `CREATE (n:${label}) SET n+=$properties RETURN n`;
+      const query = `
+        MERGE (n:${label} {id: $properties.id}) 
+        SET n += $properties
+        RETURN n
+      `;
       const result = await tx.run(query, { properties });
       return result.records[0].get(0);
     });
+
   }
 
-  async createRelationship({
+  async Relationship({
     startLabel,
     startId,
     endLabel,
@@ -46,10 +51,9 @@ class Neo4jClient {
   }: Relationship) {
     return this.transaction(async (tx: Transaction) => {
       const query = `
-        MATCH (a:${startLabel}),(b:${endLabel})
-        WHERE a.id = $startId AND b.id = $endId
-        CREATE (a)-[r:${relationship}]->(b)
-        SET r+=$properties
+        MATCH (a:${startLabel} {id: $startId}), (b:${endLabel} {id: $endId})
+        MERGE (a)-[r:${relationship}]->(b)
+        SET r += $properties
         RETURN r
       `;
       const result = await tx.run(query, { startId, endId, properties });
@@ -78,34 +82,6 @@ class Neo4jClient {
         DELETE r
       `;
       await tx.run(query, { startId, endId });
-    });
-  }
-
-  async updateNode({ label, properties = {} }: Node) {
-    return this.transaction(async (tx: Transaction) => {
-      const query = `MATCH (n:${label}) SET n+=$properties RETURN n`;
-      const result = await tx.run(query, { properties });
-      return result.records[0].get(0);
-    });
-  }
-
-  async updateRelationship({
-    startLabel,
-    startId,
-    endLabel,
-    endId,
-    relationship,
-    properties = {},
-  }: Relationship) {
-    return this.transaction(async (tx: Transaction) => {
-      const query = `
-        MATCH (a:${startLabel})-[r:${relationship}]->(b:${endLabel})
-        WHERE a.id = $startId AND b.id = $endId
-        SET r+=$properties
-        RETURN r
-      `;
-      const result = await tx.run(query, { startId, endId, properties });
-      return result.records[0].get(0);
     });
   }
 
