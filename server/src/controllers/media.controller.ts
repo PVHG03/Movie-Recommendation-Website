@@ -1,9 +1,6 @@
-import { TMDB_API_BASE_URL, TMDB_API_KEY } from "../constants/env";
-import { BAD_REQUEST, CONFLICT, NOT_FOUND, OK } from "../constants/http";
+import { BAD_REQUEST, NOT_FOUND, OK } from "../constants/http";
 import { Favorite } from "../models/favorite.model";
-import { Media } from "../models/media.model";
 import { Review } from "../models/review.model";
-import { User } from "../models/user.model";
 import { favoriteMedia, unfavoriteMedia } from "../services/favorite.service";
 import { fetchMediaDetails, saveMediaToMongo } from "../services/media.service";
 import {
@@ -14,7 +11,6 @@ import {
 import { tmdbApi } from "../tmdb/tmdb.api";
 import appAssert from "../utils/appAssert";
 import catchError from "../utils/catchError";
-import neo4jClient from "../utils/Neo4j";
 
 export const getMediaListHandler = catchError(async (req, res) => {
   const { mediaType, category } = req.params;
@@ -41,6 +37,33 @@ export const getMediaHandler = catchError(async (req, res) => {
     data: media,
   });
 });
+
+export const getReiewsOfMediaHandler = catchError(async (req, res) => {
+  const { mediaId, mediaType } = req.params;
+
+  const reviews = await Review.find({ mediaId: `${mediaType}-${mediaId}` });
+
+  if (reviews.length === 0) {
+    appAssert(false, NOT_FOUND, "No reviews found for this media");
+  }
+
+  return res.status(OK).json({
+    status: "success",
+    count: reviews.length,
+    data: reviews,
+  });
+});
+
+export const getNumberOfFavoritesHandler = catchError(async (req, res) => {
+  const { mediaId, mediaType } = req.params;
+
+  const favorites = await Favorite.find({ mediaId: `${mediaType}-${mediaId}` });
+
+  return res.status(OK).json({
+    status: "success",
+    count: favorites.length,
+  });
+})
 
 export const searchMediaHandler = catchError(async (req, res) => {
   const { mediaType } = req.params;

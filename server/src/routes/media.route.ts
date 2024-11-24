@@ -9,6 +9,8 @@ import {
   reviewMediaHandler,
   removeReviewMediaHandler,
   editReviewMediaHandler,  
+  getReiewsOfMediaHandler,
+  getNumberOfFavoritesHandler
 } from "../controllers/media.controller";
 import authenticate from "../middlewares/authenticate";
 import restrictTo from "../middlewares/restrict";
@@ -22,6 +24,8 @@ const router = Router({
 router.get("/search", searchMediaHandler); 
 router.get("/:category", getMediaListHandler); 
 router.get("/detail/:mediaId", getMediaHandler); 
+router.get("/:mediaId/reviews", getReiewsOfMediaHandler);
+router.get("/:mediaId/favorites", getNumberOfFavoritesHandler);
 
 router.use(authenticate); 
 router.post('/:mediaId/favorite', favoriteMediaHandler); 

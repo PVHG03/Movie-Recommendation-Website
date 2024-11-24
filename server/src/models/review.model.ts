@@ -12,7 +12,7 @@ export interface ReviewDocument extends mongoose.Document {
 
 const reviewSchema = new mongoose.Schema<ReviewDocument>(
   {
-    mediaId: { type: String, required: true },
+    mediaId: { type: String, required: true, ref: "Media" },
     rating: { type: Number, required: true },
     comment: { type: String, required: true },
     userId: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: true },
