@@ -78,9 +78,3 @@ To set up and run the server and client for the application, ensure you have the
 | Install Client  | `cd client && npm install` |
 | Run Server      | `npm run dev`              |
 | Run Client      | `npm run dev`              |
-
-### PROJECT DEMO PAGES
-![Login Page](demo/login_page.png)
-![Registeration Page](demo/register_page.png)
-![Home Page](demo/homepage.png)
-![Media Detail Page](demo/detail_page.png)
